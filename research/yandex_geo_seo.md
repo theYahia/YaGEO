@@ -62,7 +62,7 @@ Mechanics: Alice AI делает несколько запросов в Поис
 - День 2: `geo-yandex-citability` sub-skill — scorer ЭПОС по странице (parse HTML, score 0-100 по каждому из 4 критериев)
 - День 3: `geo-yandex-crawlers` — robots.txt checker для YandexBot, YandexAdditionalBot, YandexImages, YandexMobileBot + warnings если блокируем
 - День 4: `geo-yandex-schema` — генератор Yandex-friendly JSON-LD (Organization с sameAs под VK/OK/Telegram, Article с author E-E-A-T), валидатор
-- День 5: PDF-репорт (по шаблону zubair, но с brand "для Алисы AI"), README, install.sh, Russian-language commands `/yageo audit`, `/yageo check`, etc.
+- День 5: PDF-репорт (по шаблону YaGEO, но с brand "для Алисы AI"), README, install.sh, Russian-language commands `/yageo audit`, `/yageo check`, etc.
 
 **Опционально Phase 2 (неделя +1):** Webmaster-scraper через Puppeteer (риск: Яндекс может менять DOM) или wait-for-API если Яндекс выпустит.
 
@@ -84,7 +84,7 @@ Gitverse (СберТех) — 2024+. Открытых данных об акти
 
 # Build plan — `geo-seo-yandex` skill
 
-## Architecture (inherit from zubair, remap)
+## Architecture (inherit from YaGEO, remap)
 
 ```
 geo-seo-yandex/

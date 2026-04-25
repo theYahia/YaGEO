@@ -40,7 +40,7 @@ time_cap: 60-90 minutes
 
 ## Prior beliefs (Brier-style, уточнить в Phase 7)
 
-- P(есть production-ready tool сравнимый с zubair) = **0.15** (user сказал 20-50%, я чуть ниже — heavy tooling под Алиса AI слишком новое поле)
+- P(есть production-ready tool сравнимый с YaGEO) = **0.15** (user сказал 20-50%, я чуть ниже — heavy tooling под Алиса AI слишком новое поле)
 - P(есть ≥1 качественный RU-гайд по Алиса AI SEO) = **0.50**
 - P(Yandex Webmaster раскрывает API для Алиса-метрик) = **0.25**
 - P(Gitverse-публикация даст ≥50 звёзд за 3 мес) = **0.20** (Gitverse молодой, ниша узкая)
@@ -48,7 +48,7 @@ time_cap: 60-90 minutes
 
 ## What I Already Know
 
-- **zubair-trabzadeh/YaGEO** (изучил через Obsidian clipping `D:/Yahia/obsidian/Base/wiki/raw-processed/2026-04-22/zubair-trabzadeh-YaGEO.md`): Claude Code skill с 13 sub-skill для GEO под ChatGPT/Claude/Perplexity/Gemini/Google AIO. Что покрывает: citability (134-167 слов/блок), 14+ AI crawlers robots.txt check, llms.txt, brand mentions (YouTube/Reddit/Wiki/LinkedIn), schema generator, E-E-A-T scoring, PDF reports. Явно НЕ покрывает: Яндекс, YandexGPT, Алиса AI, RU-специфика.
+- **YaGEO-trabzadeh/YaGEO** (изучил через Obsidian clipping `D:/Yahia/obsidian/Base/wiki/raw-processed/2026-04-22/YaGEO-trabzadeh-YaGEO.md`): Claude Code skill с 13 sub-skill для GEO под ChatGPT/Claude/Perplexity/Gemini/Google AIO. Что покрывает: citability (134-167 слов/блок), 14+ AI crawlers robots.txt check, llms.txt, brand mentions (YouTube/Reddit/Wiki/LinkedIn), schema generator, E-E-A-T scoring, PDF reports. Явно НЕ покрывает: Яндекс, YandexGPT, Алиса AI, RU-специфика.
 - У Яндекса есть **yandex-webmaster-api** — есть публичные Python-клиенты (вероятно, подробности уточнить).
 - Gosmax.ru уже сейчас индексируется в Яндекс/Google — SEO-фундамент заложен (JSON-LD SoftwareApplication, breadcrumbs, sitemap). GEO-слой не добавляли.
 - Пользователь видел в **Yandex Webmaster плашку «NEW Алиса AI»** — значит метрики начали публиковаться. Важный Phase 2 target.

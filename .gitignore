@@ -16,3 +16,8 @@ build/
 models/
 *.egg-info/
 .venv*/
+.claude/
+.git_replacements.txt
+yageo_audit_*.md
+yageo_audit_*.pdf
+yageo_batch_*.csv

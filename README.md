@@ -1,6 +1,6 @@
 # YaGEO— Yandex / Alice AI Generative Engine Optimization skill
 
-Claude Code skill для оптимизации сайтов под **Яндекс.Поиск** и **Alice AI** (голосовой помощник + генеративные ответы Яндекса). RU-аналог `YaGEO`, заточенный под критерии ЭПОС и Webmaster-инструмент «Видимость сайта в Алисе AI».
+Claude Code skill для оптимизации сайтов под **Яндекс.Поиск** и **Alice AI** (голосовой помощник + генеративные ответы Яндекса). заточенный под критерии ЭПОС и Webmaster-инструмент «Видимость сайта в Алисе AI».
 
 ## Статус
 
@@ -37,6 +37,3 @@ YaGEO/
 - **Dogfood pilot** — gosmax.ru будет первым сайтом, на котором прогоняется скилл.
 - **Публикация** — GitHub (primary), Gitverse (RU-mirror). Статья на Habr/vc.ru с before/after метриками через 2-3 недели после apply на gosmax.ru.
 
-## Zubair template reference
-
-`YaGEO` — англоязычный GEO skill для ChatGPT/Claude/Perplexity/Gemini. Используем как скелет (архитектуру 13 sub-skills + 5 агентов + 6 schema templates + PDF report pipeline). Не форкаем напрямую — переписываем под ЭПОС + RU-реалии.
