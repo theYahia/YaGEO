@@ -28,6 +28,7 @@ dev = ["pytest>=8.0", "pytest-cov>=5.0"]
 yageo-epos = "scripts.epos_scorer:main"
 yageo-crawlers = "scripts.yandex_crawler_check:main"
 yageo-content-depth = "scripts.content_depth:main"
+yageo-schema = "scripts.json_ld_validator:main"
 
 [build-system]
 requires = ["hatchling"]
