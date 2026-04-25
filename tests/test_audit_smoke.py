@@ -109,7 +109,7 @@ def test_render_report_no_crash():
     report = _make_mock_report()
     report.top_recommendations = _aggregate_recommendations(report)
     md = render_report(report)
-    assert "YaGEOAudit Report" in md
+    assert "YaGEO Audit Report" in md
     assert "gosmax" not in md  # mock uses example.ru
     assert "ЭПОС" in md
     assert "рекомендации" in md

@@ -91,7 +91,7 @@ jinja2               # markdown templating
 
 ---
 
-## Архитектура (следовать YaGEOYaGEOкак скелет)
+## Архитектура (следовать YaGEOкак скелет)
 
 ```
 YaGEO/

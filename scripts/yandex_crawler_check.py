@@ -1,5 +1,5 @@
 """
-YaGEOCrawlers — проверяет доступность сайта для YandexBot и корректность sitemap.
+YaGEO Crawlers — проверяет доступность сайта для YandexBot и корректность sitemap.
 
 Checks:
   - robots.txt: YandexBot / YandexAdditionalBot не заблокированы
@@ -502,7 +502,7 @@ def _ensure_utf8_stdout():
 @click.argument("url")
 @click.option("--json", "output_json", is_flag=True, help="Вывод в формате JSON")
 def main(url: str, output_json: bool):
-    """YaGEOCrawlers — проверка robots.txt, sitemap.xml и canonical для Яндекс индексации.
+    """YaGEO Crawlers — проверка robots.txt, sitemap.xml и canonical для Яндекс индексации.
 
     \b
     Usage:

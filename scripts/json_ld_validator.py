@@ -1,5 +1,5 @@
 """
-YaGEOSchema — валидация и генерация JSON-LD разметки для Яндекс Alice AI.
+YaGEO Schema — валидация и генерация JSON-LD разметки для Яндекс Alice AI.
 
 Validates existing schema.org markup on page, detects missing schemas,
 and generates ready-to-paste JSON-LD blocks for:
@@ -738,7 +738,7 @@ def _ensure_utf8_stdout():
 @click.option("--generate", is_flag=True, default=False, help="Показать сгенерированные JSON-LD блоки")
 @click.option("--html", "html_file", type=click.Path(exists=True), help="Локальный HTML файл")
 def main(url: Optional[str], output_json: bool, generate: bool, html_file: Optional[str]):
-    """YaGEOSchema — валидация и генерация JSON-LD для Яндекс Alice AI.
+    """YaGEO Schema — валидация и генерация JSON-LD для Яндекс Alice AI.
 
     \b
     Usage:

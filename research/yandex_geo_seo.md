@@ -164,7 +164,7 @@ geo-seo-yandex/
 - [ ] Проверить `robots.txt` на отсутствие блокировок для `YandexBot` и `YandexAdditionalBot`
 
 **Prio 2 (build-ветка, следующая неделя):**
-- [ ] Fork YaGEOYaGEOкак скелет → создать отдельный репо `geo-seo-yandex`
+- [ ] Fork YaGEOкак скелет → создать отдельный репо `geo-seo-yandex`
 - [ ] MVP dev 5 дней по плану выше
 - [ ] Публикация на GitHub + Gitverse
 - [ ] Apply на gosmax.ru, собрать before/after метрики за 2-3 недели

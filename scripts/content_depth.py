@@ -1,5 +1,5 @@
 """
-YaGEOContent Depth — детальный анализ структуры и глубины контента.
+YaGEO Content Depth — детальный анализ структуры и глубины контента.
 
 Выходит за рамки базового ЭПОС-скоринга и даёт посекционный отчёт:
   - Word count per H2 section
@@ -471,7 +471,7 @@ def _ensure_utf8_stdout():
 @click.option("--json", "output_json", is_flag=True, help="Вывод в JSON")
 @click.option("--html", "html_file", type=click.Path(exists=True), help="Локальный HTML")
 def main(url: Optional[str], output_json: bool, html_file: Optional[str]):
-    """YaGEOContent Depth — посекционный анализ структуры контента для Alice AI.
+    """YaGEO Content Depth — посекционный анализ структуры контента для Alice AI.
 
     \b
     Usage:

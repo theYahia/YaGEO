@@ -1,5 +1,5 @@
 """
-YaGEOBatch Audit — массовый ЭПОС-скоринг по sitemap.xml.
+YaGEO Batch Audit — массовый ЭПОС-скоринг по sitemap.xml.
 
 Читает sitemap.xml целевого сайта, запускает yageo-epos на каждой странице
 через ThreadPoolExecutor(workers), сохраняет результаты в CSV + summary.
@@ -176,7 +176,7 @@ def _ensure_utf8_stdout():
 @click.option("-o", "--output", "out_path", default=None,
               help="CSV файл для результатов (по умолчанию: auto из URL)")
 def main(url: str, workers: int, limit: Optional[int], out_path: Optional[str]):
-    """YaGEOBatch — ЭПОС-скоринг всех страниц сайта из sitemap.xml.
+    """YaGEO Batch — ЭПОС-скоринг всех страниц сайта из sitemap.xml.
 
     \b
     Usage:

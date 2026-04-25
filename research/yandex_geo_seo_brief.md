@@ -18,7 +18,7 @@ time_cap: 60-90 minutes
 
 ## Sub-decision (expanded by user 2026-04-24)
 
-**Если Russian-рынок пуст — делать ли свой аналог YaGEOYaGEOпод Yandex и публиковать на gitverse.ru?**
+**Если Russian-рынок пуст — делать ли свой аналог YaGEOпод Yandex и публиковать на gitverse.ru?**
 
 Тезис пользователя: «по идее можно много звёзд и признания собрать» — namespace для «Yandex AI SEO Claude Code skill» может быть свободен, RU-dev-комьюнити на Gitverse растёт, Yandex.Алиса AI только объявлена («NEW» плашка в Webmaster).
 

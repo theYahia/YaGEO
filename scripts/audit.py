@@ -1,5 +1,5 @@
 """
-YaGEOAudit — комплексный аудит: ЭПОС + Crawlers + Schema + Content Depth.
+YaGEO Audit — комплексный аудит: ЭПОС + Crawlers + Schema + Content Depth.
 
 Запускает все 4 инструмента параллельно (ThreadPoolExecutor),
 агрегирует рекомендации по приоритету, генерирует markdown-отчёт через Jinja2.
@@ -357,7 +357,7 @@ def audit_url(url: str) -> AuditReport:
               default=None, help="Сохранить markdown-отчёт (опционально: указать путь)")
 @click.option("--json", "output_json", is_flag=True, help="JSON-вывод всех 4 результатов")
 def main(url: str, report_path: Optional[str], output_json: bool):
-    """YaGEOAudit — полный аудит: ЭПОС + Crawlers + Schema + Content (параллельно).
+    """YaGEO Audit — полный аудит: ЭПОС + Crawlers + Schema + Content (параллельно).
 
     \b
     Usage:

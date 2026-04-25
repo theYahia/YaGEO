@@ -1,5 +1,5 @@
 """
-YaGEOPDF Report Generator — конвертирует AuditReport в стилизованный PDF.
+YaGEO PDF Report Generator — конвертирует AuditReport в стилизованный PDF.
 
 Usage:
     python scripts/generate_yageo_pdf.py https://gosmax.ru/ -o report.pdf
@@ -128,8 +128,8 @@ def build_pdf(report: AuditReport, out_path: str) -> None:
         pagesize=A4,
         leftMargin=2*cm, rightMargin=2*cm,
         topMargin=2*cm, bottomMargin=2*cm,
-        title=f"YaGEOAudit — {report.url}",
-        author="YaGEOv0.1",
+        title=f"YaGEO Audit — {report.url}",
+        author="YaGEO v0.1",
     )
 
     story = []
@@ -139,7 +139,7 @@ def build_pdf(report: AuditReport, out_path: str) -> None:
     schema = report.schema
 
     # --- Header ---
-    story.append(Paragraph("YaGEOAudit Report", S["title"]))
+    story.append(Paragraph("YaGEO Audit Report", S["title"]))
     story.append(Paragraph(
         f"<b>URL:</b> {report.url} &nbsp;|&nbsp; "
         f"<b>Дата:</b> {datetime.now().strftime('%Y-%m-%d %H:%M')} &nbsp;|&nbsp; "
@@ -357,7 +357,7 @@ def build_pdf(report: AuditReport, out_path: str) -> None:
     story.append(Spacer(1, 14))
     story.append(HRFlowable(width="100%", thickness=0.5, color=_GRAY))
     story.append(Paragraph(
-        "Сгенерировано YaGEOv0.1 — open-source Claude Code skill для Яндекс ЭПОС + Alice AI",
+        "Сгенерировано YaGEO v0.1 — open-source Claude Code skill для Яндекс ЭПОС + Alice AI",
         S["small"]
     ))
 
@@ -382,7 +382,7 @@ def _ensure_utf8_stdout():
 @click.option("--json-in", "json_path", default=None,
               help="Читать AuditReport из JSON вместо живого аудита")
 def main(url: str, out_path: Optional[str], json_path: Optional[str]):
-    """YaGEOPDF — генерирует PDF-отчёт по результатам аудита."""
+    """YaGEO PDF — генерирует PDF-отчёт по результатам аудита."""
     _ensure_utf8_stdout()
 
     if out_path is None:
