@@ -26,10 +26,14 @@ from typing import Optional
 warnings.filterwarnings("ignore")
 
 import click
-import requests
 import textstat
-import trafilatura
 from bs4 import BeautifulSoup, Tag
+
+from scripts._common import (
+    ensure_utf8_stdout as _ensure_utf8_stdout,
+    extract_text as _extract_text,
+    fetch_html as _fetch_html,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -71,38 +75,7 @@ class ContentDepthReport:
 
 
 # ---------------------------------------------------------------------------
-# Fetch & parse
-# ---------------------------------------------------------------------------
-
-_HEADERS = {
-    "User-Agent": (
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/124.0.0.0 Safari/537.36"
-    ),
-    "Accept-Language": "ru-RU,ru;q=0.9",
-}
-
-
-def _fetch_html(url: str) -> str:
-    r = requests.get(url, headers=_HEADERS, timeout=15)
-    r.raise_for_status()
-    r.encoding = r.apparent_encoding or "utf-8"
-    return r.text
-
-
-def _extract_text(html: str) -> str:
-    text = trafilatura.extract(html, include_comments=False, include_tables=True)
-    if text and len(text.strip()) > 50:
-        return text.strip()
-    soup = BeautifulSoup(html, "lxml")
-    for tag in soup(["nav", "header", "footer", "aside", "script", "style"]):
-        tag.decompose()
-    return soup.get_text(separator=" ", strip=True)
-
-
-# ---------------------------------------------------------------------------
-# Section extraction
+# Section extraction (fetch/extract live in scripts._common)
 # ---------------------------------------------------------------------------
 
 _HEADING_TAGS = {"h1", "h2", "h3", "h4"}
@@ -456,14 +429,6 @@ def _print_report(r: ContentDepthReport) -> None:
 # ---------------------------------------------------------------------------
 # Click CLI
 # ---------------------------------------------------------------------------
-
-def _ensure_utf8_stdout():
-    if hasattr(sys.stdout, "reconfigure"):
-        try:
-            sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-        except Exception:
-            pass
-
 
 @click.command()
 @click.argument("url", required=False)

@@ -33,6 +33,11 @@ import requests
 import textstat
 from bs4 import BeautifulSoup
 
+from scripts._common import (
+    ensure_utf8_stdout as _ensure_utf8_stdout,
+    fetch_html as _fetch_html,
+)
+
 
 # ---------------------------------------------------------------------------
 # Data structures
@@ -70,28 +75,7 @@ class SchemaReport:
 
 
 # ---------------------------------------------------------------------------
-# HTTP helpers
-# ---------------------------------------------------------------------------
-
-_HEADERS = {
-    "User-Agent": (
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/124.0.0.0 Safari/537.36"
-    ),
-    "Accept-Language": "ru-RU,ru;q=0.9",
-}
-
-
-def _fetch_html(url: str, timeout: int = 15) -> str:
-    r = requests.get(url, headers=_HEADERS, timeout=timeout)
-    r.raise_for_status()
-    r.encoding = r.apparent_encoding or "utf-8"
-    return r.text
-
-
-# ---------------------------------------------------------------------------
-# JSON-LD extraction
+# JSON-LD extraction (HTTP fetch lives in scripts._common)
 # ---------------------------------------------------------------------------
 
 def _extract_jsonld(soup: BeautifulSoup) -> list[dict]:
@@ -723,14 +707,6 @@ def _print_report(r: SchemaReport, show_generated: bool = False) -> None:
 # ---------------------------------------------------------------------------
 # Click CLI
 # ---------------------------------------------------------------------------
-
-def _ensure_utf8_stdout():
-    if hasattr(sys.stdout, "reconfigure"):
-        try:
-            sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-        except Exception:
-            pass
-
 
 @click.command()
 @click.argument("url", required=False)

@@ -24,8 +24,13 @@ warnings.filterwarnings("ignore")
 import click
 import requests
 import textstat
-import trafilatura
 from bs4 import BeautifulSoup
+
+from scripts._common import (
+    ensure_utf8_stdout as _ensure_utf8_stdout,
+    extract_text as _extract_text,
+    fetch_html as _fetch_html,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -57,42 +62,8 @@ class EposScore:
 
 
 # ---------------------------------------------------------------------------
-# HTML fetch & parse helpers
+# HTML parse helpers (fetch/extract live in scripts._common)
 # ---------------------------------------------------------------------------
-
-_HEADERS = {
-    "User-Agent": (
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/124.0.0.0 Safari/537.36"
-    ),
-    "Accept-Language": "ru-RU,ru;q=0.9",
-}
-
-
-def _fetch_html(url: str, timeout: int = 15) -> str:
-    resp = requests.get(url, headers=_HEADERS, timeout=timeout)
-    resp.raise_for_status()
-    resp.encoding = resp.apparent_encoding or "utf-8"
-    return resp.text
-
-
-def _extract_text(html: str) -> str:
-    """Extract main content text. trafilatura primary, BS4 fallback."""
-    text = trafilatura.extract(
-        html,
-        include_comments=False,
-        include_tables=True,
-        no_fallback=False,
-    )
-    if text and len(text.strip()) > 50:
-        return text.strip()
-    # Fallback: strip obvious boilerplate via BS4
-    soup = BeautifulSoup(html, "lxml")
-    for tag in soup(["nav", "header", "footer", "aside", "script", "style", "noscript"]):
-        tag.decompose()
-    return soup.get_text(separator=" ", strip=True)
-
 
 def _parse_soup(html: str) -> BeautifulSoup:
     return BeautifulSoup(html, "lxml")
@@ -641,7 +612,6 @@ def _print_report(result: EposScore) -> None:
     click.echo(_format_score_line("С Содержательность:", result.s, s_note()))
     click.echo()
 
-    overall_sym = _LEVEL_SYMBOL[_level(result.overall)]
     click.echo(f"  Overall: {result.overall} / 100 — {_citability_label(result.overall)}")
     click.echo()
 
@@ -660,15 +630,6 @@ def _print_report(result: EposScore) -> None:
 # ---------------------------------------------------------------------------
 # Click CLI
 # ---------------------------------------------------------------------------
-
-def _ensure_utf8_stdout():
-    """Force UTF-8 output on Windows where default is CP1251."""
-    if hasattr(sys.stdout, "reconfigure"):
-        try:
-            sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-        except Exception:
-            pass
-
 
 @click.command()
 @click.argument("url", required=False)

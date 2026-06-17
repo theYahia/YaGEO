@@ -17,7 +17,6 @@ from __future__ import annotations
 
 import json
 import re
-import sys
 import warnings
 from dataclasses import dataclass, field, asdict
 from typing import Optional
@@ -28,6 +27,8 @@ warnings.filterwarnings("ignore")
 import click
 import requests
 from bs4 import BeautifulSoup
+
+from scripts._common import ensure_utf8_stdout as _ensure_utf8_stdout
 
 try:
     from usp.tree import sitemap_tree_for_homepage
@@ -431,7 +432,7 @@ def _print_report(r: CrawlerReport) -> None:
     # robots.txt
     rob = r.robots
     if rob:
-        click.echo(f"  robots.txt")
+        click.echo("  robots.txt")
         click.echo(f"    {_sym(rob.found, warn_only=True)} Найден: {'да' if rob.found else 'нет'}")
         click.echo(f"    {_sym(rob.yandexbot_allowed)} YandexBot разрешён")
         click.echo(f"    {_sym(rob.yandexadditional_allowed)} YandexAdditionalBot разрешён")
@@ -462,7 +463,7 @@ def _print_report(r: CrawlerReport) -> None:
     # canonical
     can = r.canonical
     if can:
-        click.echo(f"  Canonical")
+        click.echo("  Canonical")
         click.echo(f"    {_sym(can.found, warn_only=True)} Тег найден: {'да' if can.found else 'нет'}")
         if can.found:
             click.echo(f"    {_sym(can.matches_target, warn_only=True)} Совпадает с URL: {'да' if can.matches_target else 'нет'}")
@@ -488,14 +489,6 @@ def _print_report(r: CrawlerReport) -> None:
 # ---------------------------------------------------------------------------
 # Click CLI
 # ---------------------------------------------------------------------------
-
-def _ensure_utf8_stdout():
-    if hasattr(sys.stdout, "reconfigure"):
-        try:
-            sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-        except Exception:
-            pass
-
 
 @click.command()
 @click.argument("url")
