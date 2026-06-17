@@ -21,8 +21,6 @@ from urllib.parse import urlparse
 
 warnings.filterwarnings("ignore")
 
-import io
-
 import click
 import requests
 import textstat
