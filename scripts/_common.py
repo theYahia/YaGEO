@@ -17,6 +17,8 @@ import requests
 import trafilatura
 from bs4 import BeautifulSoup
 
+from scripts.cache import get as _cache_get, put as _cache_put
+
 
 # Chrome-like headers used by the page-scoring scripts (epos / content_depth /
 # json_ld_validator). The crawler check uses its own bot-identifying UA.
@@ -40,11 +42,20 @@ def ensure_utf8_stdout() -> None:
 
 
 def fetch_html(url: str, timeout: int = 15) -> str:
-    """GET ``url`` with browser headers and return the decoded HTML body."""
+    """GET ``url`` with browser headers and return the decoded HTML body.
+
+    Если включён файловый кэш (см. ``scripts.cache``, opt-in через env), повторные загрузки того же
+    URL берутся из кэша вместо сети. По умолчанию кэш выключен — поведение не меняется.
+    """
+    cached = _cache_get(url)
+    if cached is not None:
+        return cached
     resp = requests.get(url, headers=BROWSER_HEADERS, timeout=timeout)
     resp.raise_for_status()
     resp.encoding = resp.apparent_encoding or "utf-8"
-    return resp.text
+    html = resp.text
+    _cache_put(url, html)
+    return html
 
 
 def extract_text(html: str) -> str:

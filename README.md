@@ -123,6 +123,20 @@ boilerplate/LSI-списки) вынесены в **`yageo/epos_config.toml`** �
 **без правки кода**. Удаление любого ключа безопасно: движок берёт встроенный дефолт. Свой файл —
 через env `YAGEO_CONFIG=path`. Парсинг — stdlib `tomllib`, без новых зависимостей.
 
+Полезные переключатели:
+- `[content].flesch_enabled` — отключить ненадёжный для русского Flesch-бонус;
+- `[originality].lemmatize_ttr` — считать TTR по леммам (Natasha), а не словоформам;
+- `[[lsi.profiles]]` — доменные LSI-профили (выбор по `url_markers`) + `default_keywords`. Так
+  доменная специфика (напр. каталог ботов) живёт в данных, а не в коде.
+
+### Кэш загрузок (opt-in)
+
+Повторные аудиты тех же URL можно не тянуть из сети — включи файловый кэш (по умолчанию **выключен**):
+- `YAGEO_CACHE=1` — кэш в `~/.cache/yageo`; либо `YAGEO_CACHE_DIR=/path`;
+- `YAGEO_CACHE_TTL=<сек>` — срок жизни (по умолчанию 3600).
+
+Ключ кэша — только URL (без заголовков/кук), поэтому не используй для авторизованных страниц.
+
 ## Структура репо
 
 ```
@@ -136,6 +150,7 @@ YaGEO/
 │   ├── generate_yageo_pdf.py   # PDF-отчёт (ReportLab)
 │   ├── batch_audit.py          # batch ЭПОС по sitemap
 │   ├── config.py               # загрузчик порогов из epos_config.toml
+│   ├── cache.py                # opt-in файловый кэш загрузок (YAGEO_CACHE)
 │   └── mcp_server.py           # MCP-сервер (FastMCP, stdio) — 9 тулов
 ├── schema/                     # RU JSON-LD шаблоны (Organization, Person, FAQ, ...)
 ├── agents/                     # Claude Code subagent specs
@@ -145,7 +160,7 @@ YaGEO/
 │   └── templates/
 │       └── audit_report.md.j2  # Jinja2 Markdown шаблон
 ├── plugin/                     # Claude Code plugin (MCP) — .mcp.json + bootstrap
-├── tests/                      # 48 offline тестов
+├── tests/                      # 61 offline тестов
 ├── install.sh / install-win.sh
 └── pyproject.toml
 ```

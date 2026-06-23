@@ -188,12 +188,17 @@ def _score_s(text: str, soup: BeautifulSoup, schemas: list[dict]) -> tuple[int, 
     sigs["has_faq_schema"] = has_faq
     schema_bonus = c["schema_bonus"] if has_faq else 0
 
-    # Flesch readability (textstat supports RU via syllable heuristics)
-    try:
-        flesch = textstat.flesch_reading_ease(text)
-        sigs["flesch_score"] = round(flesch, 1)
-        readability_bonus = c["flesch_bonus"] if c["flesch_min"] <= flesch <= c["flesch_max"] else 0
-    except Exception:
+    # Flesch readability. textstat использует англо-эвристику слогов → для русского ненадёжно;
+    # бонус можно отключить (flesch_enabled=false), тогда он не влияет на С.
+    if c.get("flesch_enabled", True):
+        try:
+            flesch = textstat.flesch_reading_ease(text)
+            sigs["flesch_score"] = round(flesch, 1)
+            readability_bonus = c["flesch_bonus"] if c["flesch_min"] <= flesch <= c["flesch_max"] else 0
+        except Exception:
+            sigs["flesch_score"] = None
+            readability_bonus = 0
+    else:
         sigs["flesch_score"] = None
         readability_bonus = 0
 
@@ -216,6 +221,14 @@ _AUTH_DOMAINS = re.compile(
     r"\.(" + "|".join(CFG["lexicon"]["auth_domains"]) + r")",
     re.IGNORECASE,
 )
+
+# Комментарии HTML/CSS вырезаем перед сканом попапов: иначе закомментированный CSS
+# (напр. `/* z-index: 9999 */`) даёт ложное срабатывание popup_detected.
+_COMMENT_RE = re.compile(r"<!--.*?-->|/\*.*?\*/", re.DOTALL)
+
+
+def _strip_comments(html: str) -> str:
+    return _COMMENT_RE.sub(" ", html)
 
 
 def _score_p(html: str, soup: BeautifulSoup, url: str, text: str) -> tuple[int, dict]:
@@ -242,8 +255,8 @@ def _score_p(html: str, soup: BeautifulSoup, url: str, text: str) -> tuple[int, 
     sigs["first_chunk_len"] = len(first_chunk)
     answer_first_pts = u["answer_first_pts"] if len(first_chunk) >= u["answer_first_min_chars"] else 0
 
-    # Intrusive popup check (inline CSS pattern scan)
-    raw_html_chunk = html[:u["popup_scan_chars"]]
+    # Intrusive popup check (inline CSS pattern scan; комментарии вырезаны → меньше false-positive)
+    raw_html_chunk = _strip_comments(html[:u["popup_scan_chars"]])
     popup_detected = bool(_POPUP_PATTERNS.search(raw_html_chunk))
     sigs["popup_detected"] = popup_detected
     popup_pts = u["popup_detected_pts"] if popup_detected else u["popup_clean_pts"]
@@ -297,35 +310,31 @@ def _score_e(text: str, soup: BeautifulSoup, schemas: list[dict]) -> tuple[int, 
     sigs["has_org_schema"] = has_org
     org_pts = x["org_pts"] if has_org else 0
 
-    # NER: named entities and numeric facts
+    words = max(1, textstat.lexicon_count(text, removepunct=True))
+
+    # Numeric facts: digits / 100 words. Это regex, НЕ зависит от Natasha — считаем всегда,
+    # чтобы сбой загрузки NER-модели не обнулял заодно и numeric_pts.
+    numeric_count = len(re.findall(r"\b\d+[.,]?\d*\b", text))
+    numeric_density = numeric_count / (words / 100)
+    sigs["numeric_density"] = round(numeric_density, 2)
+    numeric_pts = min(x["numeric_density_cap"], int(numeric_density * x["numeric_density_mult"]))
+
+    # Named entities (Natasha NER). При сбое загрузки модели — graceful: entity_pts=0, numeric уцелел.
     try:
         entities = _run_ner(text)
         ner_types = [e[0] for e in entities]
-        words = max(1, textstat.lexicon_count(text, removepunct=True))
-        per_count = ner_types.count("PER")
-        org_count = ner_types.count("ORG")
-        loc_count = ner_types.count("LOC")
-        sigs["ner_per"] = per_count
-        sigs["ner_org"] = org_count
-        sigs["ner_loc"] = loc_count
-
-        # Numeric facts: digits in text / 100 words
-        numeric_count = len(re.findall(r"\b\d+[.,]?\d*\b", text))
-        numeric_density = numeric_count / (words / 100)
-        sigs["numeric_density"] = round(numeric_density, 2)
+        sigs["ner_per"] = ner_types.count("PER")
+        sigs["ner_org"] = ner_types.count("ORG")
+        sigs["ner_loc"] = ner_types.count("LOC")
 
         # NER density per 100 words
         entity_density = len(entities) / (words / 100)
         sigs["entity_density"] = round(entity_density, 2)
-
-        # Numeric fact score
-        numeric_pts = min(x["numeric_density_cap"], int(numeric_density * x["numeric_density_mult"]))
-        # Entity density score
         entity_pts = min(x["entity_density_cap"], int(entity_density * x["entity_density_mult"]))
 
     except Exception as exc:
         sigs["ner_error"] = str(exc)
-        numeric_pts = 0
+        sigs["entity_density"] = 0
         entity_pts = 0
 
     # External authoritative links (reuse from П is not available here, recalc)
@@ -359,11 +368,46 @@ def _tokenize_simple(text: str) -> list[str]:
     return [t for t in tokens if len(t) > 2 and t not in _RU_STOPWORDS]
 
 
+_MORPH_VOCAB = None
+
+
+def _get_morph_vocab():
+    global _MORPH_VOCAB
+    if _MORPH_VOCAB is None:
+        from natasha import MorphVocab
+        _MORPH_VOCAB = MorphVocab()
+    return _MORPH_VOCAB
+
+
+def _lemmatize_tokens(text: str) -> list[str]:
+    """Леммы значимых токенов через Natasha — для TTR по леммам (opt-in: lemmatize_ttr).
+
+    «жил/жила/жили» → одна лемма, поэтому TTR честнее отражает разнообразие. Фолбэк на словоформы
+    (_tokenize_simple) при любой ошибке Natasha — О не должна зависеть от загрузки модели.
+    """
+    try:
+        from natasha import Doc
+        segmenter, morph_tagger, _ = _get_ner()
+        morph_vocab = _get_morph_vocab()
+        doc = Doc(text[:CFG["expertise"]["ner_chunk_chars"]])
+        doc.segment(segmenter)
+        doc.tag_morph(morph_tagger)
+        lemmas: list[str] = []
+        for token in doc.tokens:
+            token.lemmatize(morph_vocab)
+            lemma = (token.lemma or token.text).lower()
+            if len(lemma) > 2 and lemma not in _RU_STOPWORDS:
+                lemmas.append(lemma)
+        return lemmas or _tokenize_simple(text)
+    except Exception:
+        return _tokenize_simple(text)
+
+
 def _score_o(text: str) -> tuple[int, dict]:
     o = CFG["originality"]
     sigs: dict = {}
 
-    tokens = _tokenize_simple(text)
+    tokens = _lemmatize_tokens(text) if o.get("lemmatize_ttr") else _tokenize_simple(text)
     if len(tokens) < o["min_tokens"]:
         sigs["o_note"] = "text too short for originality scoring"
         return o["short_text_score"], sigs

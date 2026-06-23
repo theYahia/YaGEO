@@ -37,6 +37,7 @@ DEFAULTS: dict[str, Any] = {
         "list_bonus_per": 5, "list_bonus_cap": 10,
         "schema_bonus": 15,
         "flesch_min": 40, "flesch_max": 70, "flesch_bonus": 5,
+        "flesch_enabled": True,  # Flesch ненадёжен для русского — можно отключить (бонус → 0)
     },
     # П — Полезность (_score_p)
     "usefulness": {
@@ -65,6 +66,7 @@ DEFAULTS: dict[str, Any] = {
         "numeric_mult": 2, "numeric_cap": 25,
         "min_sentences_for_variance": 3,
         "sentence_std_mult": 1.5, "sentence_std_cap": 15,
+        "lemmatize_ttr": False,  # opt-in: TTR по леммам (Natasha) вместо словоформ
     },
     # Пороги срабатывания рекомендаций (_build_recommendations)
     "recommendations": {
@@ -100,21 +102,27 @@ DEFAULTS: dict[str, Any] = {
             "kommersant\\.ru", "habr\\.com", "tass\\.ru", "vedomosti\\.ru",
         ],
     },
-    # LSI-покрытие (content_depth) — доменные термины под gosmax.ru-style каталог
+    # LSI-покрытие (content_depth). Доменная специфика живёт в данных (profiles), не в коде:
+    # первый profile, чей url_marker встретился в URL, задаёт набор keywords; иначе default_keywords.
     "lsi": {
-        "base_keywords": [
+        "coverage_min": 0.5,      # порог рекомендации «низкое LSI»
+        "default_keywords": [
             "заголовок", "структура", "раздел", "параграф",
             "автор", "эксперт", "источник", "исследование", "данные",
             "пример", "кейс", "инструкция", "как", "шаг",
             "алиса", "яндекс", "поиск", "ответ", "запрос",
         ],
-        "catalog_keywords": [
-            "бот", "команда", "функция", "интеграция", "api", "мессенджер",
-            "автоматизация", "сценарий", "webhook", "чат",
+        "profiles": [
+            {
+                "name": "catalog",  # каталог ботов (gosmax.ru-style)
+                "url_markers": ["gosmax", "bot", "catalog"],
+                "keywords": [
+                    "бот", "команда", "функция", "интеграция", "api", "мессенджер",
+                    "автоматизация", "сценарий", "webhook", "чат",
+                    "заголовок", "структура", "раздел", "параграф", "автор", "эксперт",
+                ],
+            },
         ],
-        "catalog_url_markers": ["gosmax", "bot", "catalog"],
-        "catalog_base_count": 6,  # сколько base-слов добавить к catalog-набору
-        "coverage_min": 0.5,      # порог рекомендации «низкое LSI»
     },
 }
 

@@ -233,11 +233,12 @@ def _detect_speakable(soup: BeautifulSoup, text: str) -> bool:
 def _compute_lsi(text: str, url: str) -> tuple[float, list[str], list[str]]:
     lsi = CFG["lsi"]
     text_lower = text.lower()
-    # Choose keyword set based on URL heuristic
-    if any(marker in url for marker in lsi["catalog_url_markers"]):
-        keywords = lsi["catalog_keywords"] + lsi["base_keywords"][:lsi["catalog_base_count"]]
-    else:
-        keywords = lsi["base_keywords"]
+    # Доменный профиль: первый, чей url_marker встретился в URL; иначе набор по умолчанию.
+    keywords = lsi["default_keywords"]
+    for profile in lsi.get("profiles", []):
+        if any(marker in url for marker in profile.get("url_markers", [])):
+            keywords = profile["keywords"]
+            break
 
     found = [kw for kw in keywords if kw in text_lower]
     missing = [kw for kw in keywords if kw not in text_lower]

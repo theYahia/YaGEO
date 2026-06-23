@@ -21,6 +21,7 @@ schema_bonus = 15            # FAQPage / HowTo / speakable schema
 flesch_min = 40
 flesch_max = 70
 flesch_bonus = 5
+flesch_enabled = true            # Flesch ненадёжен для русского — false отключает бонус
 
 # П — Полезность
 [usefulness]
@@ -64,6 +65,7 @@ numeric_cap = 25
 min_sentences_for_variance = 3
 sentence_std_mult = 1.5
 sentence_std_cap = 15
+lemmatize_ttr = false            # opt-in: TTR по леммам (Natasha) вместо словоформ
 
 # Пороги срабатывания рекомендаций
 [recommendations]
@@ -101,18 +103,23 @@ auth_domains = [
     'kommersant\.ru', 'habr\.com', 'tass\.ru', 'vedomosti\.ru',
 ]
 
-# LSI-покрытие (content_depth) — доменные термины. Под свой сайт замени списки.
+# LSI-покрытие (content_depth). Доменная специфика — в профилях (данные, не код).
+# Первый profile, чей url_marker встретился в URL, задаёт keywords; иначе default_keywords.
+# Под свой сайт: замени default_keywords и/или добавь свой [[lsi.profiles]].
 [lsi]
-base_keywords = [
+coverage_min = 0.5               # порог рекомендации «низкое LSI-покрытие»
+default_keywords = [
     "заголовок", "структура", "раздел", "параграф",
     "автор", "эксперт", "источник", "исследование", "данные",
     "пример", "кейс", "инструкция", "как", "шаг",
     "алиса", "яндекс", "поиск", "ответ", "запрос",
 ]
-catalog_keywords = [
+
+[[lsi.profiles]]
+name = "catalog"                 # каталог ботов (gosmax.ru-style)
+url_markers = ["gosmax", "bot", "catalog"]
+keywords = [
     "бот", "команда", "функция", "интеграция", "api", "мессенджер",
     "автоматизация", "сценарий", "webhook", "чат",
+    "заголовок", "структура", "раздел", "параграф", "автор", "эксперт",
 ]
-catalog_url_markers = ["gosmax", "bot", "catalog"]
-catalog_base_count = 6           # сколько base-слов добавить к catalog-набору
-coverage_min = 0.5               # порог рекомендации «низкое LSI-покрытие»
