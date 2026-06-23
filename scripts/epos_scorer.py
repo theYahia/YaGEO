@@ -31,6 +31,15 @@ from scripts._common import (
     extract_text as _extract_text,
     fetch_html as _fetch_html,
 )
+from scripts.config import CFG
+
+
+def _bucket(value: float, thresholds: list, scores: list):
+    """score = первый scores[i], чей thresholds[i] > value; иначе последний score."""
+    for threshold, score in zip(thresholds, scores):
+        if value < threshold:
+            return score
+    return scores[-1]
 
 
 # ---------------------------------------------------------------------------
@@ -136,8 +145,8 @@ def _run_ner(text: str) -> list[tuple[str, str]]:
     """Returns list of (type, text) for named entities. PER/ORG/LOC."""
     from natasha import Doc
     segmenter, morph_tagger, ner_tagger = _get_ner()
-    # Natasha struggles with very long texts — chunk to first 8000 chars
-    chunk = text[:8000]
+    # Natasha struggles with very long texts — chunk to first N chars
+    chunk = text[:CFG["expertise"]["ner_chunk_chars"]]
     doc = Doc(chunk)
     doc.segment(segmenter)
     doc.tag_morph(morph_tagger)
@@ -150,21 +159,13 @@ def _run_ner(text: str) -> list[tuple[str, str]]:
 # ---------------------------------------------------------------------------
 
 def _score_s(text: str, soup: BeautifulSoup, schemas: list[dict]) -> tuple[int, dict]:
+    c = CFG["content"]
     sigs: dict = {}
 
     # Word count (textstat)
     words = textstat.lexicon_count(text, removepunct=True)
     sigs["word_count"] = words
-    if words < 100:
-        wc_score = 0
-    elif words < 300:
-        wc_score = 10
-    elif words < 500:
-        wc_score = 40
-    elif words < 1500:
-        wc_score = 65
-    else:
-        wc_score = 85
+    wc_score = _bucket(words, c["word_count_thresholds"], c["word_count_scores"])
 
     # Heading structure
     h2s = len(soup.find_all("h2"))
@@ -172,26 +173,26 @@ def _score_s(text: str, soup: BeautifulSoup, schemas: list[dict]) -> tuple[int, 
     sigs["h2_count"] = h2s
     sigs["h3_count"] = h3s
     heading_bonus = 0
-    if h2s >= 3:
-        heading_bonus = 10
-    if h2s >= 6:
-        heading_bonus = 15
+    if h2s >= c["h2_min_low"]:
+        heading_bonus = c["h2_bonus_low"]
+    if h2s >= c["h2_min_high"]:
+        heading_bonus = c["h2_bonus_high"]
 
     # Lists
     lists = len(soup.find_all(["ul", "ol"]))
     sigs["list_count"] = lists
-    list_bonus = min(lists * 5, 10)
+    list_bonus = min(lists * c["list_bonus_per"], c["list_bonus_cap"])
 
     # FAQPage / HowTo schema
     has_faq = _has_schema_type(schemas, "faqpage", "howto", "speakable")
     sigs["has_faq_schema"] = has_faq
-    schema_bonus = 15 if has_faq else 0
+    schema_bonus = c["schema_bonus"] if has_faq else 0
 
     # Flesch readability (textstat supports RU via syllable heuristics)
     try:
         flesch = textstat.flesch_reading_ease(text)
         sigs["flesch_score"] = round(flesch, 1)
-        readability_bonus = 5 if 40 <= flesch <= 70 else 0
+        readability_bonus = c["flesch_bonus"] if c["flesch_min"] <= flesch <= c["flesch_max"] else 0
     except Exception:
         sigs["flesch_score"] = None
         readability_bonus = 0
@@ -212,43 +213,44 @@ _POPUP_PATTERNS = re.compile(
 )
 
 _AUTH_DOMAINS = re.compile(
-    r"\.(gov|edu|ac\.|wikipedia\.org|rbc\.ru|kommersant\.ru|habr\.com|tass\.ru|vedomosti\.ru)",
+    r"\.(" + "|".join(CFG["lexicon"]["auth_domains"]) + r")",
     re.IGNORECASE,
 )
 
 
 def _score_p(html: str, soup: BeautifulSoup, url: str, text: str) -> tuple[int, dict]:
+    u = CFG["usefulness"]
     sigs: dict = {}
 
     # HTTPS
     is_https = url.startswith("https://")
     sigs["is_https"] = is_https
-    https_pts = 10 if is_https else 0
+    https_pts = u["https_pts"] if is_https else 0
 
     # Mobile viewport
     viewport = soup.find("meta", attrs={"name": re.compile(r"viewport", re.I)})
     sigs["has_viewport"] = bool(viewport)
-    viewport_pts = 15 if viewport else 0
+    viewport_pts = u["viewport_pts"] if viewport else 0
 
     # H1 exists
     h1 = soup.find("h1")
     sigs["has_h1"] = bool(h1)
-    h1_pts = 10 if h1 else 0
+    h1_pts = u["h1_pts"] if h1 else 0
 
-    # Answer-first heuristic: first 1500 chars of text is substantial
-    first_chunk = text[:1500].strip()
+    # Answer-first heuristic: first N chars of text is substantial
+    first_chunk = text[:u["answer_first_slice"]].strip()
     sigs["first_chunk_len"] = len(first_chunk)
-    answer_first_pts = 20 if len(first_chunk) >= 200 else 0
+    answer_first_pts = u["answer_first_pts"] if len(first_chunk) >= u["answer_first_min_chars"] else 0
 
     # Intrusive popup check (inline CSS pattern scan)
-    raw_html_chunk = html[:50000]
+    raw_html_chunk = html[:u["popup_scan_chars"]]
     popup_detected = bool(_POPUP_PATTERNS.search(raw_html_chunk))
     sigs["popup_detected"] = popup_detected
-    popup_pts = -20 if popup_detected else 20
+    popup_pts = u["popup_detected_pts"] if popup_detected else u["popup_clean_pts"]
 
     # Content not pathologically thin
     words = textstat.lexicon_count(text, removepunct=True)
-    thin_penalty = -30 if words < 100 else 0
+    thin_penalty = u["thin_penalty"] if words < u["thin_word_threshold"] else 0
     sigs["thin_penalty"] = thin_penalty
 
     # External authoritative links
@@ -271,6 +273,7 @@ def _score_p(html: str, soup: BeautifulSoup, url: str, text: str) -> tuple[int, 
 # ---------------------------------------------------------------------------
 
 def _score_e(text: str, soup: BeautifulSoup, schemas: list[dict]) -> tuple[int, dict]:
+    x = CFG["expertise"]
     sigs: dict = {}
 
     # Person schema with credentials
@@ -278,21 +281,21 @@ def _score_e(text: str, soup: BeautifulSoup, schemas: list[dict]) -> tuple[int, 
     sigs["has_author_schema"] = bool(author)
     author_pts = 0
     if author:
-        author_pts = 30
+        author_pts = x["author_pts"]
         has_credentials = bool(
             author.get("jobTitle") or author.get("affiliation") or
             author.get("description") or author.get("sameAs")
         )
         sigs["author_has_credentials"] = has_credentials
         if has_credentials:
-            author_pts = 50  # author + credentials together
+            author_pts = x["author_with_creds_pts"]  # author + credentials together
     else:
         sigs["author_has_credentials"] = False
 
     # Organization schema
     has_org = _has_schema_type(schemas, "organization", "localbusiness", "brand")
     sigs["has_org_schema"] = has_org
-    org_pts = 15 if has_org else 0
+    org_pts = x["org_pts"] if has_org else 0
 
     # NER: named entities and numeric facts
     try:
@@ -315,10 +318,10 @@ def _score_e(text: str, soup: BeautifulSoup, schemas: list[dict]) -> tuple[int, 
         entity_density = len(entities) / (words / 100)
         sigs["entity_density"] = round(entity_density, 2)
 
-        # Numeric fact score (0-20)
-        numeric_pts = min(20, int(numeric_density * 4))
-        # Entity density score (0-20)
-        entity_pts = min(20, int(entity_density * 5))
+        # Numeric fact score
+        numeric_pts = min(x["numeric_density_cap"], int(numeric_density * x["numeric_density_mult"]))
+        # Entity density score
+        entity_pts = min(x["entity_density_cap"], int(entity_density * x["entity_density_mult"]))
 
     except Exception as exc:
         sigs["ner_error"] = str(exc)
@@ -332,7 +335,7 @@ def _score_e(text: str, soup: BeautifulSoup, schemas: list[dict]) -> tuple[int, 
     ]
     auth_links = [l for l in ext_links if _AUTH_DOMAINS.search(l)]
     sigs["e_auth_links"] = len(auth_links)
-    auth_pts = min(15, len(auth_links) * 5)
+    auth_pts = min(x["auth_link_cap"], len(auth_links) * x["auth_link_pts_per"])
 
     raw = author_pts + org_pts + numeric_pts + entity_pts + auth_pts
     score = min(100, max(0, raw))
@@ -344,20 +347,10 @@ def _score_e(text: str, soup: BeautifulSoup, schemas: list[dict]) -> tuple[int, 
 # О — Оригинальность (lexical-only for v0.1, semantic similarity in v0.2)
 # ---------------------------------------------------------------------------
 
-_RU_STOPWORDS = frozenset([
-    "и", "в", "не", "на", "с", "что", "а", "по", "это", "из",
-    "как", "к", "от", "но", "за", "то", "так", "его", "для", "же",
-    "все", "о", "об", "из", "или", "при", "он", "она", "они", "мы",
-    "я", "ты", "вы", "был", "была", "было", "были", "есть", "будет",
-    "свой", "своей", "своего", "этот", "эта", "эти", "того", "той",
-])
+_RU_STOPWORDS = frozenset(CFG["lexicon"]["stopwords"])
 
 # Generic catalog boilerplate bigrams (for gosmax-style pages)
-_CATALOG_BOILERPLATE = frozenset([
-    "бот для", "в мессенджере", "скачать приложение", "установить бесплатно",
-    "перейти к", "официальный сайт", "подробнее о", "читать далее",
-    "все боты", "каталог ботов",
-])
+_CATALOG_BOILERPLATE = frozenset(CFG["lexicon"]["catalog_boilerplate"])
 
 
 def _tokenize_simple(text: str) -> list[str]:
@@ -367,12 +360,13 @@ def _tokenize_simple(text: str) -> list[str]:
 
 
 def _score_o(text: str) -> tuple[int, dict]:
+    o = CFG["originality"]
     sigs: dict = {}
 
     tokens = _tokenize_simple(text)
-    if len(tokens) < 10:
+    if len(tokens) < o["min_tokens"]:
         sigs["o_note"] = "text too short for originality scoring"
-        return 10, sigs
+        return o["short_text_score"], sigs
 
     total_tokens = len(tokens)
     unique_tokens = len(set(tokens))
@@ -382,7 +376,7 @@ def _score_o(text: str) -> tuple[int, dict]:
     # Type-token ratio (TTR) — higher = more diverse vocabulary
     ttr = unique_tokens / total_tokens
     sigs["ttr"] = round(ttr, 3)
-    ttr_pts = min(30, int(ttr * 60))  # TTR 0.5 → 30 pts
+    ttr_pts = min(o["ttr_cap"], int(ttr * o["ttr_mult"]))  # TTR 0.5 → 30 pts
 
     # Trigram uniqueness: fraction of trigrams NOT in catalog boilerplate
     trigrams: set[str] = set()
@@ -393,23 +387,23 @@ def _score_o(text: str) -> tuple[int, dict]:
     boilerplate_hits = len(trigrams)
     sigs["boilerplate_hits"] = boilerplate_hits
     # More boilerplate = less original
-    uniqueness_pts = max(0, 30 - boilerplate_hits * 5)
+    uniqueness_pts = max(0, o["boilerplate_base"] - boilerplate_hits * o["boilerplate_penalty_per"])
 
     # Numeric facts density as proxy for "own data"
     numeric_count = len(re.findall(r"\b\d+[.,]?\d*\b", text))
-    numeric_pts = min(25, numeric_count * 2)
+    numeric_pts = min(o["numeric_cap"], numeric_count * o["numeric_mult"])
     sigs["numeric_count"] = numeric_count
 
     # Sentence length variance — formulaic pages have low variance
     sentences = [s.strip() for s in re.split(r"[.!?]", text) if len(s.strip()) > 10]
     sigs["sentence_count"] = len(sentences)
-    if len(sentences) >= 3:
+    if len(sentences) >= o["min_sentences_for_variance"]:
         lengths = [len(s.split()) for s in sentences]
         mean_len = sum(lengths) / len(lengths)
         variance = sum((l - mean_len) ** 2 for l in lengths) / len(lengths)
         std_dev = math.sqrt(variance)
         sigs["sentence_std_dev"] = round(std_dev, 1)
-        variance_pts = min(15, int(std_dev * 1.5))
+        variance_pts = min(o["sentence_std_cap"], int(std_dev * o["sentence_std_mult"]))
     else:
         sigs["sentence_std_dev"] = 0
         variance_pts = 0
@@ -426,6 +420,7 @@ def _score_o(text: str) -> tuple[int, dict]:
 # ---------------------------------------------------------------------------
 
 def _build_recommendations(score: EposScore) -> list[Recommendation]:
+    r = CFG["recommendations"]
     recs: list[Recommendation] = []
     sigs = score.signals
 
@@ -440,7 +435,7 @@ def _build_recommendations(score: EposScore) -> list[Recommendation]:
             "Добавить jobTitle/affiliation/sameAs к существующей Person schema",
             15, "Э"
         ))
-    if sigs.get("numeric_density", 0) < 2:
+    if sigs.get("numeric_density", 0) < r["numeric_density_min"]:
         recs.append(Recommendation(
             "Добавить конкретные цифры, факты, статистику в текст (+2 pts на каждые 10 фактов)",
             10, "Э"
@@ -474,12 +469,12 @@ def _build_recommendations(score: EposScore) -> list[Recommendation]:
         ))
 
     # О recommendations
-    if sigs.get("ttr", 0) < 0.3:
+    if sigs.get("ttr", 0) < r["ttr_min"]:
         recs.append(Recommendation(
             "Обогатить текст синонимами и LSI-словами — TTR ниже 0.3 сигнализирует об однообразии",
             15, "О"
         ))
-    if sigs.get("boilerplate_hits", 0) > 2:
+    if sigs.get("boilerplate_hits", 0) > r["boilerplate_max"]:
         recs.append(Recommendation(
             "Переписать шаблонные фразы своими словами / добавить уникальные кейсы",
             15, "О"
@@ -487,13 +482,13 @@ def _build_recommendations(score: EposScore) -> list[Recommendation]:
 
     # С recommendations
     word_count = sigs.get("word_count", 0)
-    if word_count < 300:
+    if word_count < r["word_count_min"]:
         delta = max(20, 40 - score.s)
         recs.append(Recommendation(
             f"Расширить текст до минимум 300-500 слов (сейчас {word_count} слов) — добавить описание, FAQ, кейсы",
             delta, "С"
         ))
-    if sigs.get("h2_count", 0) < 2:
+    if sigs.get("h2_count", 0) < r["h2_min"]:
         recs.append(Recommendation(
             "Добавить структуру H2-H4 — Alice лучше индексирует страницы с явной иерархией заголовков",
             10, "С"
@@ -551,17 +546,19 @@ _LEVEL_SYMBOL = {
 
 
 def _level(score: int) -> str:
-    if score >= 70:
+    cit = CFG["citability"]
+    if score >= cit["level_high"]:
         return "green"
-    if score >= 40:
+    if score >= cit["level_medium"]:
         return "yellow"
     return "red"
 
 
 def _citability_label(overall: int) -> str:
-    if overall >= 70:
+    cit = CFG["citability"]
+    if overall >= cit["cit_high"]:
         return "HIGH citability"
-    if overall >= 50:
+    if overall >= cit["cit_medium"]:
         return "MEDIUM citability"
     return "LOW citability"
 

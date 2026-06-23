@@ -34,6 +34,7 @@ from scripts._common import (
     extract_text as _extract_text,
     fetch_html as _fetch_html,
 )
+from scripts.config import CFG
 
 
 # ---------------------------------------------------------------------------
@@ -225,34 +226,18 @@ def _detect_speakable(soup: BeautifulSoup, text: str) -> bool:
 # LSI keyword coverage
 # ---------------------------------------------------------------------------
 
-# Base domain keywords for Alice AI / GEO content context.
-# These are generic RU content quality signals (Ashmanov checklist proximity).
-# For a real page, you'd derive LSI from the page's main topic.
-_BASE_LSI_KEYWORDS = [
-    # structure
-    "заголовок", "структура", "раздел", "параграф",
-    # expertise signals
-    "автор", "эксперт", "источник", "исследование", "данные",
-    # usefulness
-    "пример", "кейс", "инструкция", "как", "шаг",
-    # EPOS specifics
-    "алиса", "яндекс", "поиск", "ответ", "запрос",
-]
-
-# For gosmax.ru (bot catalog) — domain-specific terms
-_CATALOG_LSI = [
-    "бот", "команда", "функция", "интеграция", "api", "мессенджер",
-    "автоматизация", "сценарий", "webhook", "чат",
-]
+# LSI-наборы (base / catalog), доменные маркеры URL и пороги — в scripts/config.py
+# (секция [lsi], дублируется в yageo/epos_config.toml). Под свой сайт замени списки в TOML.
 
 
 def _compute_lsi(text: str, url: str) -> tuple[float, list[str], list[str]]:
+    lsi = CFG["lsi"]
     text_lower = text.lower()
     # Choose keyword set based on URL heuristic
-    if "gosmax" in url or "bot" in url or "catalog" in url:
-        keywords = _CATALOG_LSI + _BASE_LSI_KEYWORDS[:6]
+    if any(marker in url for marker in lsi["catalog_url_markers"]):
+        keywords = lsi["catalog_keywords"] + lsi["base_keywords"][:lsi["catalog_base_count"]]
     else:
-        keywords = _BASE_LSI_KEYWORDS
+        keywords = lsi["base_keywords"]
 
     found = [kw for kw in keywords if kw in text_lower]
     missing = [kw for kw in keywords if kw not in text_lower]
@@ -312,7 +297,7 @@ def _build_recommendations(report: ContentDepthReport) -> list[str]:
         )
 
     # LSI
-    if report.lsi_coverage < 0.5 and report.lsi_missing:
+    if report.lsi_coverage < CFG["lsi"]["coverage_min"] and report.lsi_missing:
         top_missing = report.lsi_missing[:5]
         recs.append(f"Низкое LSI-покрытие ({report.lsi_coverage:.0%}). Добавить: {', '.join(top_missing)}")
 
