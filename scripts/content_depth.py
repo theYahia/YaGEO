@@ -33,6 +33,8 @@ from scripts._common import (
     ensure_utf8_stdout as _ensure_utf8_stdout,
     extract_text as _extract_text,
     fetch_html as _fetch_html,
+    STATUS_SYMBOLS as _SYM,
+    status_symbol as _sym,
 )
 from scripts.config import CFG
 
@@ -348,17 +350,8 @@ def analyze_url(url: str) -> ContentDepthReport:
 
 
 # ---------------------------------------------------------------------------
-# CLI output
+# CLI output  (_SYM / _sym are shared helpers imported from scripts._common)
 # ---------------------------------------------------------------------------
-
-_SYM = {"ok": "✓", "warn": "⚠", "bad": "✗"}
-
-
-def _sym(condition: bool, warn_only: bool = False) -> str:
-    if condition:
-        return _SYM["ok"]
-    return _SYM["warn"] if warn_only else _SYM["bad"]
-
 
 def _print_report(r: ContentDepthReport) -> None:
     click.echo()

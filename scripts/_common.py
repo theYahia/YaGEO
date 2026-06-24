@@ -41,6 +41,19 @@ def ensure_utf8_stdout() -> None:
             pass
 
 
+# OK / WARN / BAD glyphs shared by the CLI reports (content_depth, crawler check).
+# json_ld_validator extends this with an extra "info" key; audit uses a different
+# HIGH/MEDIUM/LOW set — those keep their own local maps.
+STATUS_SYMBOLS = {"ok": "✓", "warn": "⚠", "bad": "✗"}
+
+
+def status_symbol(condition: bool, warn_only: bool = False) -> str:
+    """✓ if condition else ⚠ (warn_only) / ✗. Shared CLI status glyph helper."""
+    if condition:
+        return STATUS_SYMBOLS["ok"]
+    return STATUS_SYMBOLS["warn"] if warn_only else STATUS_SYMBOLS["bad"]
+
+
 def fetch_html(url: str, timeout: int = 15) -> str:
     """GET ``url`` with browser headers and return the decoded HTML body.
 

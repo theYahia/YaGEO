@@ -31,7 +31,11 @@ warnings.filterwarnings("ignore")
 
 import click
 
-from scripts._common import ensure_utf8_stdout as _ensure_utf8_stdout
+from scripts._common import (
+    ensure_utf8_stdout as _ensure_utf8_stdout,
+    STATUS_SYMBOLS as _SYM,
+    status_symbol as _sym,
+)
 
 # --- Re-exported public surface (facade) -----------------------------------
 from scripts._crawler_types import (
@@ -114,17 +118,8 @@ def check_url(url: str) -> CrawlerReport:
 
 
 # ---------------------------------------------------------------------------
-# CLI output
+# CLI output  (_SYM / _sym are shared helpers imported from scripts._common)
 # ---------------------------------------------------------------------------
-
-_SYM = {"ok": "✓", "warn": "⚠", "bad": "✗"}
-
-
-def _sym(condition: bool, warn_only: bool = False) -> str:
-    if condition:
-        return _SYM["ok"]
-    return _SYM["warn"] if warn_only else _SYM["bad"]
-
 
 def _print_report(r: CrawlerReport) -> None:
     click.echo()
