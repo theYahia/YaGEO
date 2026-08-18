@@ -4,13 +4,13 @@
 > сборку, где весь яндексовский слой лежит в одном месте: официальные MCP-серверы
 > Яндекса, MCP под Директ и Метрику, скилл YaGEO и Wordstat-гейт.
 >
-> Актуальная версия того, что лежало здесь: [`own/yageo/`](https://github.com/theYahia/YaAll/tree/main/own/yageo)
+> Актуальная версия того, что лежало здесь: [`yageo/`](https://github.com/theYahia/YaAll/tree/main/yageo)
 >
 > Здесь больше ничего не обновляется. Задачи и pull request'ы — в YaAll.
 >
 > **Archived — development moved to [theYahia/YaAll](https://github.com/theYahia/YaAll),**
 > a single repository bundling the whole Yandex stack. The current version of this
-> package now lives at [`own/yageo/`](https://github.com/theYahia/YaAll/tree/main/own/yageo). Please open issues and pull requests there.
+> package now lives at [`yageo/`](https://github.com/theYahia/YaAll/tree/main/yageo). Please open issues and pull requests there.
 
 # YaGEO — Yandex / Alice AI Generative Engine Optimization
 
